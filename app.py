@@ -4,13 +4,15 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field
 
+load_dotenv()
 
-DEFAULT_USERNAME = os.environ.get("BASIC_AUTH_USERNAME", "agentuser")
-DEFAULT_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "agentpass")
+DEFAULT_USERNAME = os.environ.get("BASIC_AUTH_USERNAME")
+DEFAULT_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD")
 
 security = HTTPBasic()
 app = FastAPI(title="Incident Auth API", version="1.0.0")
