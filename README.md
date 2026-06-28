@@ -9,7 +9,7 @@ A small in-memory REST API for testing Copilot Studio agent calls with HTTP Basi
 - Required custom header key: ``
 - Required custom header value: ``
 
-The API checks both the Basic Auth header and the custom header.
+The API now checks the Copilot header on all incident routes. Basic Auth helpers remain in the code for later use, but they are not used by the routes.
 
 ## Endpoints
 

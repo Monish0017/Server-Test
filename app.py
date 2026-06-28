@@ -301,12 +301,8 @@ def require_copilot_header(request: Request) -> None:
         )
 
 
-def require_request_auth(
-    request: Request,
-    username: str = Depends(require_basic_auth),
-) -> str:
+def require_request_auth(request: Request) -> None:
     require_copilot_header(request)
-    return username
 
 
 def next_incident_id() -> int:
@@ -338,24 +334,26 @@ def auth_info() -> Dict[str, str]:
         "header_value_format": "Basic <base64(username:password)>",
         "default_username": DEFAULT_USERNAME,
         "default_password": DEFAULT_PASSWORD,
+        "required_header_key": REQUIRED_HEADER_KEY,
+        "required_header_value": REQUIRED_HEADER_VALUE,
     }
 
 
 @app.get("/incidents")
-def list_incidents(username: str = Depends(require_request_auth)) -> Dict[str, object]:
-    return {"requested_by": username, "count": len(INCIDENTS), "items": INCIDENTS}
+def list_incidents(_: None = Depends(require_request_auth)) -> Dict[str, object]:
+    return {"count": len(INCIDENTS), "items": INCIDENTS}
 
 
 @app.get("/incidents/{incident_id}")
-def get_incident(incident_id: int, username: str = Depends(require_request_auth)) -> Dict[str, object]:
+def get_incident(incident_id: int, _: None = Depends(require_request_auth)) -> Dict[str, object]:
     index = find_incident_index(incident_id)
     if index == -1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found.")
-    return {"requested_by": username, "item": INCIDENTS[index]}
+    return {"item": INCIDENTS[index]}
 
 
 @app.post("/incidents", status_code=status.HTTP_201_CREATED)
-def create_incident(payload: IncidentCreate, username: str = Depends(require_request_auth)) -> Dict[str, object]:
+def create_incident(payload: IncidentCreate, _: None = Depends(require_request_auth)) -> Dict[str, object]:
     with incident_lock:
         incident = payload.model_dump()
         incident_record = {
@@ -365,14 +363,14 @@ def create_incident(payload: IncidentCreate, username: str = Depends(require_req
         }
         INCIDENTS.append(incident_record)
 
-    return {"requested_by": username, "created": incident_record}
+    return {"created": incident_record}
 
 
 @app.put("/incidents/{incident_id}")
 def update_incident(
     incident_id: int,
     payload: IncidentUpdate,
-    username: str = Depends(require_request_auth),
+    _: None = Depends(require_request_auth),
 ) -> Dict[str, object]:
     with incident_lock:
         index = find_incident_index(incident_id)
@@ -385,11 +383,11 @@ def update_incident(
         current["updated_at"] = datetime.now(timezone.utc).isoformat()
         INCIDENTS[index] = current
 
-    return {"requested_by": username, "updated": current}
+    return {"updated": current}
 
 
 @app.delete("/incidents/{incident_id}")
-def delete_incident(incident_id: int, username: str = Depends(require_request_auth)) -> Dict[str, object]:
+def delete_incident(incident_id: int, _: None = Depends(require_request_auth)) -> Dict[str, object]:
     with incident_lock:
         index = find_incident_index(incident_id)
         if index == -1:
@@ -397,7 +395,7 @@ def delete_incident(incident_id: int, username: str = Depends(require_request_au
 
         removed = INCIDENTS.pop(index)
 
-    return {"requested_by": username, "deleted": removed}
+    return {"deleted": removed}
 
 
 @app.get("/")
