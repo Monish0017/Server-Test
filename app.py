@@ -5,14 +5,23 @@ from threading import Lock
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field
 
 load_dotenv()
 
-DEFAULT_USERNAME = os.environ.get("BASIC_AUTH_USERNAME")
-DEFAULT_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD")
+def get_required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+DEFAULT_USERNAME = get_required_env("BASIC_AUTH_USERNAME")
+DEFAULT_PASSWORD = get_required_env("BASIC_AUTH_PASSWORD")
+REQUIRED_HEADER_KEY = get_required_env("REQUIRED_HEADER_KEY")
+REQUIRED_HEADER_VALUE = get_required_env("REQUIRED_HEADER_VALUE")
 
 security = HTTPBasic()
 app = FastAPI(title="Incident Auth API", version="1.0.0")
@@ -282,6 +291,24 @@ def require_basic_auth(credentials: HTTPBasicCredentials = Depends(security)) ->
     return credentials.username
 
 
+def require_copilot_header(request: Request) -> None:
+    header_value = request.headers.get(REQUIRED_HEADER_KEY)
+    if header_value is None or not secrets.compare_digest(header_value, REQUIRED_HEADER_VALUE):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Missing or invalid header: {REQUIRED_HEADER_KEY}.",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
+def require_request_auth(
+    request: Request,
+    username: str = Depends(require_basic_auth),
+) -> str:
+    require_copilot_header(request)
+    return username
+
+
 def next_incident_id() -> int:
     if not INCIDENTS:
         return 1
@@ -315,12 +342,12 @@ def auth_info() -> Dict[str, str]:
 
 
 @app.get("/incidents")
-def list_incidents(username: str = Depends(require_basic_auth)) -> Dict[str, object]:
+def list_incidents(username: str = Depends(require_request_auth)) -> Dict[str, object]:
     return {"requested_by": username, "count": len(INCIDENTS), "items": INCIDENTS}
 
 
 @app.get("/incidents/{incident_id}")
-def get_incident(incident_id: int, username: str = Depends(require_basic_auth)) -> Dict[str, object]:
+def get_incident(incident_id: int, username: str = Depends(require_request_auth)) -> Dict[str, object]:
     index = find_incident_index(incident_id)
     if index == -1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found.")
@@ -328,7 +355,7 @@ def get_incident(incident_id: int, username: str = Depends(require_basic_auth)) 
 
 
 @app.post("/incidents", status_code=status.HTTP_201_CREATED)
-def create_incident(payload: IncidentCreate, username: str = Depends(require_basic_auth)) -> Dict[str, object]:
+def create_incident(payload: IncidentCreate, username: str = Depends(require_request_auth)) -> Dict[str, object]:
     with incident_lock:
         incident = payload.model_dump()
         incident_record = {
@@ -345,7 +372,7 @@ def create_incident(payload: IncidentCreate, username: str = Depends(require_bas
 def update_incident(
     incident_id: int,
     payload: IncidentUpdate,
-    username: str = Depends(require_basic_auth),
+    username: str = Depends(require_request_auth),
 ) -> Dict[str, object]:
     with incident_lock:
         index = find_incident_index(incident_id)
@@ -362,7 +389,7 @@ def update_incident(
 
 
 @app.delete("/incidents/{incident_id}")
-def delete_incident(incident_id: int, username: str = Depends(require_basic_auth)) -> Dict[str, object]:
+def delete_incident(incident_id: int, username: str = Depends(require_request_auth)) -> Dict[str, object]:
     with incident_lock:
         index = find_incident_index(incident_id)
         if index == -1:
@@ -380,6 +407,7 @@ def root() -> Dict[str, str]:
         "health": "/health",
         "incidents": "/incidents",
         "auth_header": "Authorization",
+        "required_header": REQUIRED_HEADER_KEY,
     }
 
 

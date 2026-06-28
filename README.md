@@ -6,6 +6,10 @@ A small in-memory REST API for testing Copilot Studio agent calls with HTTP Basi
 
 - Header key: `Authorization`
 - Header value format: `Basic <base64(username:password)>`
+- Required custom header key: ``
+- Required custom header value: ``
+
+The API checks both the Basic Auth header and the custom header.
 
 ## Endpoints
 
