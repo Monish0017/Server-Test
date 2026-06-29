@@ -1,0 +1,98 @@
+{
+  "title": "Incident Auth API",
+  "version": "1.0.0",
+  "baseUrl": "https://server-test-6abq.onrender.com",
+  "authentication": {
+    "type": "header",
+    "headerKey": "X-Copilot-Token",
+    "headerValue": "incident-agent"
+  },
+  "endpoints": [
+    {
+      "name": "root",
+      "method": "GET",
+      "path": "/",
+      "description": "Returns service metadata and available links.",
+      "toolName": "get_service_root",
+      "responseExample": {
+        "service": "Incident Auth API",
+        "health": "/health",
+        "incidents": "/incidents",
+        "auth_header": "Authorization",
+        "required_header": "X-Copilot-Token"
+      }
+    },
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "description": "Returns a simple health response.",
+      "toolName": "get_health",
+      "responseExample": {
+        "status": "ok"
+      }
+    },
+    {
+      "name": "auth-info",
+      "method": "GET",
+      "path": "/auth-info",
+      "description": "Returns the configured auth header details.",
+      "toolName": "get_auth_info",
+      "responseExample": {
+        "header_key": "Authorization",
+        "header_value_format": "Basic <base64(username:password)>",
+        "default_username": "agentuser",
+        "default_password": "agentpass",
+        "required_header_key": "X-Copilot-Token",
+        "required_header_value": "incident-agent"
+      }
+    },
+    {
+      "name": "list-incidents",
+      "method": "GET",
+      "path": "/incidents",
+      "description": "Returns all seeded incidents.",
+      "toolName": "list_incidents"
+    },
+    {
+      "name": "get-incident",
+      "method": "GET",
+      "path": "/incidents/{incident_id}",
+      "description": "Returns a single incident by ID.",
+      "toolName": "get_incident",
+      "pathParameters": ["incident_id"]
+    },
+    {
+      "name": "create-incident",
+      "method": "POST",
+      "path": "/incidents",
+      "description": "Creates a new incident record.",
+      "toolName": "create_incident",
+      "requestBody": {
+        "incident_created_date": "2026-06-28 10:15:00",
+        "priority": "P2",
+        "description": "Example incident description.",
+        "assigned_to": "Agent Name",
+        "status": "Open",
+        "category": "General",
+        "short_description": "Example incident"
+      }
+    },
+    {
+      "name": "update-incident",
+      "method": "PUT",
+      "path": "/incidents/{incident_id}",
+      "description": "Updates an existing incident record.",
+      "toolName": "update_incident",
+      "pathParameters": ["incident_id"]
+    },
+    {
+      "name": "delete-incident",
+      "method": "DELETE",
+      "path": "/incidents/{incident_id}",
+      "description": "Deletes an incident record.",
+      "toolName": "delete_incident",
+      "pathParameters": ["incident_id"]
+    }
+  ]
+}
